@@ -8,7 +8,7 @@ format: pdf
 
 # One persona, many draws
 
-Each model was asked the same question twenty times at `temperature=1.0`, using `draw` values 0 to 19 (`01-draws.py`). The persona was "You are a woman in your thirties who lives in the Midwest of the United States and finished high school." The question asked whether she would vote for the Democratic or Republican candidate, someone else, or not vote in the House election if it were held today, and how confident she was from 0 to 100.
+Each model was asked the same question twenty times, using `draw` values 0 to 19 (`01-draws.py`), once at `temperature=1.0` and once at `temperature=0`. The persona was "You are a woman in your thirties who lives in the Midwest of the United States and finished high school." The question asked whether she would vote for the Democratic or Republican candidate, someone else, or not vote in the House election if it were held today, and how confident she was from 0 to 100.
 
 The models were:
 
@@ -17,18 +17,32 @@ The models were:
 - Muse: `meta/muse-glimmer-30b`, through OpenRouter
 - Gemma: `gemma4:12b`, run locally with Ollama. This is an extra model for comparison and is not part of the worksheet's model set.
 
-| Model | Democratic | Republican | Other | Would not vote | Modal answer | Modal share (T = 1) | Modal share (T = 0) |
-|---|--:|--:|--:|--:|---|--:|--:|
-| DeepSeek | 18 | 2 | 0 | 0 | Democratic | 90% | _pending_ |
-| GLM | 4 | 16 | 0 | 0 | Republican | 80% | _pending_ |
-| Muse | 7 | 0 | 0 | 13 | Would not vote | 65% | _pending_ |
-| Gemma | 6 | 0 | 5 | 9 | Would not vote | 45% | _pending_ |
+| Model | Temperature | Democratic | Republican | Other | Would not vote |
+|---|--:|--:|--:|--:|--:|
+| DeepSeek | 1 | 18 | 2 | 0 | 0 |
+| | 0 | 16 | 4 | 0 | 0 |
+| GLM | 1 | 4 | 16 | 0 | 0 |
+| | 0 | 1 | 19 | 0 | 0 |
+| Muse | 1 | 7 | 0 | 0 | 13 |
+| | 0 | 0 | 0 | 0 | 20 |
+| Gemma | 1 | 6 | 0 | 5 | 9 |
+| | 0 | 0 | 0 | 1 | 19 |
 
-: Votes from twenty draws per model, one persona, `temperature=1.0`. The modal share is the count of the most common answer divided by 20; T is the temperature. {#tbl-draws}
+: Votes from twenty draws per model and temperature, one persona. {#tbl-draws}
 
-Observations at `temperature=1.0`:
+| Model | Modal answer | Modal share (T = 1) | Modal share (T = 0) |
+|---|---|--:|--:|
+| DeepSeek | Democratic | 90% | 80% |
+| GLM | Republican | 80% | 95% |
+| Muse | Would not vote | 65% | 100% |
+| Gemma | Would not vote | 45% | 95% |
 
-- The same persona gets a different modal answer depending on the model: Democratic for DeepSeek, Republican for GLM, and "Would not vote" for Muse and Gemma.
-- How concentrated the answers are also varies by model, from 90% for DeepSeek to 45% for Gemma.
-- Gemma is the only model that answered "Other".
-- No draw returned a null answer.
+: Share of the twenty draws that gave the modal answer, by temperature (T). The modal answer is the same at both temperatures for every model. {#tbl-modal}
+
+Observations:
+
+- The same persona gets a different modal answer depending on the model: Democratic for DeepSeek, Republican for GLM, and "Would not vote" for Muse and Gemma. Each model's modal answer is the same at both temperatures.
+- At `temperature=1.0`, how concentrated the answers are varies by model, from 90% for DeepSeek to 45% for Gemma. Gemma is the only model that answered "Other".
+- `temperature=0` did not make the answers identical. Only Muse gave the same answer all twenty times. GLM and Gemma each gave one answer that differed from the rest, and DeepSeek gave four. For the three hosted models, a likely reason is that hosted inference is not exactly reproducible: requests are batched on GPUs, and OpenRouter can route each call to a different provider. Gemma ran on one machine with no routing and still varied, so `temperature=0` alone does not guarantee identical answers.
+- DeepSeek's modal share was lower at `temperature=0` (80%) than at `temperature=1.0` (90%). With twenty draws, the standard error of a share near 85% is about eight points, so this difference is within noise.
+- No draw at either temperature returned a null answer.
