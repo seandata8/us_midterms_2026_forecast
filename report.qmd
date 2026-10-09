@@ -1,0 +1,34 @@
+---
+title: "Silicon Samples Worksheet"
+author: "Sean Murphy"
+date: "2026-10-09"
+date-format: "D MMMM, YYYY"
+format: pdf
+---
+
+# One persona, many draws
+
+Each model was asked the same question twenty times at `temperature=1.0`, using `draw` values 0 to 19 (`01-draws.py`). The persona was "You are a woman in your thirties who lives in the Midwest of the United States and finished high school." The question asked whether she would vote for the Democratic or Republican candidate, someone else, or not vote in the House election if it were held today, and how confident she was from 0 to 100.
+
+The models were:
+
+- DeepSeek: `deepseek/deepseek-v4-flash-0731`, through OpenRouter
+- GLM: `z-ai/glm-5.3-flash`, through OpenRouter
+- Muse: `meta/muse-glimmer-30b`, through OpenRouter
+- Gemma: `gemma4:12b`, run locally with Ollama. This is an extra model for comparison and is not part of the worksheet's model set.
+
+| Model | Democratic | Republican | Other | Would not vote | Modal answer | Modal share (T = 1) | Modal share (T = 0) |
+|---|--:|--:|--:|--:|---|--:|--:|
+| DeepSeek | 18 | 2 | 0 | 0 | Democratic | 90% | _pending_ |
+| GLM | 4 | 16 | 0 | 0 | Republican | 80% | _pending_ |
+| Muse | 7 | 0 | 0 | 13 | Would not vote | 65% | _pending_ |
+| Gemma | 6 | 0 | 5 | 9 | Would not vote | 45% | _pending_ |
+
+: Votes from twenty draws per model, one persona, `temperature=1.0`. The modal share is the count of the most common answer divided by 20; T is the temperature. {#tbl-draws}
+
+Observations at `temperature=1.0`:
+
+- The same persona gets a different modal answer depending on the model: Democratic for DeepSeek, Republican for GLM, and "Would not vote" for Muse and Gemma.
+- How concentrated the answers are also varies by model, from 90% for DeepSeek to 45% for Gemma.
+- Gemma is the only model that answered "Other".
+- No draw returned a null answer.

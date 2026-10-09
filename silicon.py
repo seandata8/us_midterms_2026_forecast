@@ -19,8 +19,13 @@ client = OpenAI(
     timeout=60,
     max_retries=2,
 )
+# Local models served by Ollama's OpenAI-compatible API. Ollama ignores the key but the library requires one.
+# Longer timeout because a local model on a laptop can be slow.
+local_client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama", timeout=300, max_retries=2)
 
 MODELS = ["deepseek/deepseek-v4-flash-0731", "z-ai/glm-5.3-flash", "meta/muse-glimmer-30b"]
+# Not part of the worksheet; run deliberately for comparison. The "ollama/" prefix routes a model to local_client.
+EXTRA_MODELS = ["ollama/gemma4:12b"]
 OPTIONS = ["Democratic", "Republican", "Other", "Would not vote"]
 SCHEMA = {
     "type": "object",
@@ -60,13 +65,19 @@ def ask(model, persona, question, temperature=1.0, draw=0):
 
     # Persona goes in the system message (who the model is), question in the user message (what it is asked).
     # response_format with strict=True asks the provider to return JSON matching SCHEMA.
-    response = client.chat.completions.create(
-        model=model,
+    # The full model string (with any "ollama/" prefix) stays in the cache key; only the API sees the bare name.
+    if model.startswith("ollama/"):
+        api, name = local_client, model.removeprefix("ollama/")
+    else:
+        api, name = client, model
+    response = api.chat.completions.create(
+        model=name,
         messages=[{"role": "system", "content": persona}, {"role": "user", "content": question}],
         temperature=temperature,
         response_format={"type": "json_schema", "json_schema": {"name": "vote", "strict": True, "schema": SCHEMA}},
     )
-    spent += response.usage.cost  # OpenRouter reports the dollar cost of each call
+    cost = getattr(response.usage, "cost", 0.0)  # OpenRouter reports the dollar cost of each call; Ollama does not (it is free)
+    spent += cost
 
     # Strict mode is not guaranteed by every provider, so parse defensively and keep only the two fields we want.
     try:
@@ -84,7 +95,7 @@ def ask(model, persona, question, temperature=1.0, draw=0):
         "draw": draw,
         "persona": persona,
         "question": question,
-        "cost": response.usage.cost,
+        "cost": cost,
         **answer,
     }
     path.write_text(json.dumps(record))
